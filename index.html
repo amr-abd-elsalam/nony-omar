@@ -2,7 +2,12 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="نوني عمر - مسؤولة عن وكالة BR لتوظيف المذيعين | شحن وسحب | مصر، سوريا، لبنان">
+    <meta name="theme-color" content="#0a0a0f">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👑</text></svg>">
     <title>نوني عمر | وكالة BR لتوظيف المذيعين</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,6 +38,26 @@
 
         html {
             scroll-behavior: smooth;
+            scrollbar-width: thin;
+            scrollbar-color: var(--gold-dark) var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--gold-dark), var(--red-dark), var(--gold));
+            border-radius: 10px;
+            border: 1px solid rgba(212, 168, 83, 0.2);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, var(--gold), var(--red), var(--gold-light));
         }
 
         body {
@@ -106,11 +131,13 @@
             width: 0%;
             background: linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-light));
             border-radius: 10px;
-            animation: loadBar 2s ease-in-out forwards;
+            animation: loadBar 1.3s ease-in-out forwards;
         }
 
         @keyframes loadBar {
-            to { width: 100%; }
+            0% { width: 0%; }
+            80% { width: 90%; }
+            100% { width: 100%; }
         }
 
         @keyframes crownBounce {
@@ -254,6 +281,7 @@
             max-width: 500px;
             border-radius: 20px;
             transition: transform 0.5s ease;
+            will-change: transform;
         }
 
         .image-frame:hover img {
@@ -869,6 +897,10 @@
             .stat-number {
                 font-size: 1.1rem;
             }
+
+            .floating-shapes {
+                display: none;
+            }
         }
 
         @media (max-width: 360px) {
@@ -879,6 +911,29 @@
             .country-chip {
                 padding: 6px 12px;
                 font-size: 0.8rem;
+            }
+        }
+
+        /* Reduce motion for users who prefer it */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+            .marquee-track {
+                animation: none;
+            }
+            .floating-shapes {
+                display: none;
+            }
+        }
+
+        /* Safe area for notched phones */
+        @supports (padding: max(0px)) {
+            .main-container {
+                padding-left: max(16px, env(safe-area-inset-left));
+                padding-right: max(16px, env(safe-area-inset-right));
+                padding-bottom: max(60px, env(safe-area-inset-bottom));
             }
         }
 
@@ -968,7 +1023,7 @@
                     <div class="corner-decor bottom-left"></div>
                     <div class="glow-ring"></div>
                     <div class="glow-ring" style="animation-delay: 1s;"></div>
-                    <img src="https://www.genspark.ai/api/files/s/HGQEAl9F" alt="نوني عمر - وكالة BR لتوظيف المذيعين" loading="eager">
+                    <img src="images/hero.webp" alt="نوني عمر - وكالة BR لتوظيف المذيعين" loading="eager">
                 </div>
             </div>
 
@@ -1150,8 +1205,16 @@
         window.addEventListener('load', () => {
             setTimeout(() => {
                 document.getElementById('loader').classList.add('hidden');
-            }, 2200);
+            }, 1500);
         });
+
+        // Fallback: hide loader after 3s even if load event delayed
+        setTimeout(() => {
+            const loader = document.getElementById('loader');
+            if (loader && !loader.classList.contains('hidden')) {
+                loader.classList.add('hidden');
+            }
+        }, 3500);
 
         // ===== PARTICLES =====
         const canvas = document.getElementById('particles-canvas');
@@ -1210,7 +1273,9 @@
             }
         }
 
-        for (let i = 0; i < 80; i++) {
+        const isMobile = window.innerWidth < 768;
+        const particleCount = isMobile ? 30 : 80;
+        for (let i = 0; i < particleCount; i++) {
             particles.push(new Particle());
         }
 
@@ -1221,19 +1286,25 @@
                 p.draw();
             });
 
-            // Draw connections
-            for (let i = 0; i < particles.length; i++) {
-                for (let j = i + 1; j < particles.length; j++) {
-                    const dx = particles[i].x - particles[j].x;
-                    const dy = particles[i].y - particles[j].y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < 100) {
-                        ctx.beginPath();
-                        ctx.strokeStyle = `rgba(212, 168, 83, ${0.05 * (1 - dist / 100)})`;
-                        ctx.lineWidth = 0.5;
-                        ctx.moveTo(particles[i].x, particles[i].y);
-                        ctx.lineTo(particles[j].x, particles[j].y);
-                        ctx.stroke();
+            // Draw connections (optimized - skip on mobile)
+            if (!isMobile) {
+                const maxConnections = 60;
+                let connCount = 0;
+                for (let i = 0; i < particles.length && connCount < maxConnections; i++) {
+                    for (let j = i + 1; j < particles.length && connCount < maxConnections; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const distSq = dx * dx + dy * dy;
+                        if (distSq < 10000) {
+                            const dist = Math.sqrt(distSq);
+                            ctx.beginPath();
+                            ctx.strokeStyle = `rgba(212, 168, 83, ${0.05 * (1 - dist / 100)})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.stroke();
+                            connCount++;
+                        }
                     }
                 }
             }
